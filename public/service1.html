@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="he">
+
+<head>
+    <meta charset="UTF-8">
+    <title>מערכת ניהול תזונה</title>
+    <link rel="stylesheet" href="styleservice1.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>מערכת ניהול תזונה</h1>
+
+        <!-- טופס הזנת תאריך ובדיקת חג -->
+        <form id="dateForm" class="form-section">
+            <label>הכנס תאריך (YYYY-MM-DD):</label>
+            <input type="date" id="dateInput" name= "dateOfmeal" required>
+            <button type="button" onclick="checkDate()">בדוק תאריך</button>
+        </form>
+        <p id="dateResult" class="result"></p>
+
+        <!-- בחירת סוג ארוחה -->
+        <form id="mealForm" class="form-section">
+            <label>בחר סוג ארוחה:</label>
+            <select id="mealType" name="moment" required>
+                <option value="בוקר">בוקר</option>
+                <option value="צהריים">צהריים</option>
+                <option value="ערב">ערב</option>
+            </select>
+            <button type="button" onclick="saveMeal()">שמור סוג ארוחה</button>
+        </form>
+
+        <!-- העלאת תמונה ובדיקת תוכן -->
+        <form id="imageForm" class="form-section">
+            <label>העלה תמונה:</label>
+            <input type="file" id="imageInput" accept="image/*" required>
+            <button type="button" onclick="checkImage()">בדוק תמונה</button>
+        </form>
+        <div id="imageResult" class="result-message" name="meal" required></div>
+        <div id="sugarInfoDiv" class="result-message" name="sugarlevel" required></div>
+        <input type="hidden" id="hiddenSugarValue">
+        <br>
+
+        <!-- הזנת רמת סוכר
+        <form id="sugarForm" class="form-section">
+            <label>רמת סוכר נמדדת:</label>
+            <input type="number" id="sugarLevel" required>
+        </form> -->
+        <button type="button" onclick="saveSugarLevel()">שמור</button>
+    </div>
+
+    <script>
+        async function checkDate() {
+            const dateInput = document.getElementById('dateInput').value;
+            const resultElement = document.getElementById('dateResult');
+
+            if (!dateInput) {
+                resultElement.textContent = "אנא הכנס תאריך.";
+                return;
+            }
+
+            // Check if the date is a Saturday
+            const date = new Date(dateInput);
+            const isSaturday = date.getDay() === 6;
+
+            // Query Hebcal for holidays on the selected date
+            const url = `https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&ss=on&min=off&mod=off&nx=off&start=${dateInput}&end=${dateInput}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                // Filter events for the exact date
+                const events = data.items.filter(item => item.date.startsWith(dateInput));
+
+                let isHoliday = events.some(event => event.category === "holiday" || event.category === "rosh-hodesh");
+
+                // Display the result based on Saturday and holiday checks
+                if (isHoliday) {
+                    resultElement.innerHTML = `התאריך ${dateInput} הוא חג יהודי.`;
+                } else if (isSaturday) {
+                    resultElement.innerHTML = `התאריך ${dateInput} הוא שבת.`;
+                } else {
+                    resultElement.innerHTML = `התאריך ${dateInput} הוא יום חול.`;
+                }
+            } catch (error) {
+                resultElement.textContent = "שגיאה בבדיקת התאריך.";
+                console.error("Error:", error);
+            } 
+        }
+
+        async function saveMeal() {
+            const mealType = document.getElementById("mealType").value;
+            document.getElementById("imageForm").style.display = "block";
+        }
+
+        async function checkImage() {
+            const imageInput = document.getElementById("imageInput");
+            const imageFile = imageInput.files[0];
+            const resultElement = document.getElementById("imageResult");
+            console.log("%%%%%%%the image:", imageFile);
+
+            // ודא שהמשתמש העלה תמונה
+            if (!imageFile) {
+                resultElement.textContent = "אנא העלה תמונה.";
+                return;
+            }
+
+            // יצירת אובייקט FormData כדי לשלוח את התמונה ל-API של Imagga
+            const formData = new FormData();
+            formData.append("image", imageFile);
+
+            try {
+                // שליחת הבקשה ל-API של Imagga
+                const response = await axios.post("https://api.imagga.com/v2/tags", formData, {
+                    headers: {
+                        "Authorization": "Basic " + btoa("acc_b1dfcdf9ee43c9e:3d10d42fe94933f87e4285be2d3883cd"),
+                        "Content-Type": "multipart/form-data"
+                    }
+                });
+
+                console.log("תגובות API:", response.data); // הדפסת התגובה מה-API לעזור בזיהוי הבעיה
+
+                // קבלת התגיות מהתגובה
+                const tags = response.data.result.tags.slice(0, 10); // קבלת עשר התגיות הראשונות
+                console.log("תגיות:", tags); // הדפסת התגיות שהתקבלו
+
+                // נוודא שהתמונה כוללת מונחים שקשורים לאוכל
+                const relevantTags = tags.filter(tag => {
+                    const tagName = tag.tag.en.toLowerCase();
+                    return tagName.includes("food") || tagName.includes("meal");
+                });
+
+                console.log("תגיות שקשורות לאוכל:", relevantTags); // הדפסת תגיות שקשורות לאוכל
+
+                if (relevantTags.length > 0) {
+                    resultElement.textContent = "התמונה מכילה אוכל!";
+                    console.log("tag 1111111111111:   ", tags[4].tag.en);
+                    getNutritionalInfo(tags[4].tag.en)
+                } else {
+                    resultElement.textContent = "לא זוהה אוכל בתמונה, אנא העלה תמונה אחרת.";
+                }
+            } catch (error) {
+                resultElement.textContent = "שגיאה בבדיקת התמונה.";
+                console.error("Error:", error.response ? error.response.data : error.message); // הצגת פרטי השגיאה
+            }
+        }
+
+        ////////////////////USDA////////////////////////////////////////////////////
+        async function getNutritionalInfo(foodName) {
+            const apiKey = 'y5z1udhUMKIhsNvDikOZNh0K1Ankvj3oC3iEJ25q';
+            const apiUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(foodName)}&api_key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                console.log('Nutritional Data:', data); // דיבוג - להדפיס את הנתונים התזונתיים
+
+                if (data.foods && data.foods.length > 0) {
+                    for (const foodItem of data.foods) {
+                        console.log('Food Item:', foodItem); // דיבוג - להדפיס את המידע של המוצר
+
+                        const sugarValue = foodItem.foodNutrients.find(n =>
+                            n.nutrientName.includes('Total Sugars')
+                        );
+
+                        const glucoseValue = sugarValue; // אם גלוקוז חסר, נציג את ערך הסוכר
+
+                        if (sugarValue) {
+                            await displayNutritionalInfo(foodItem, sugarValue, glucoseValue); // הוספת await כאן
+                            return;
+                        }
+                    }
+                    sugarInfoDiv.innerText = 'No sugar or glucose information found for this food';
+                } else {
+                    sugarInfoDiv.innerText = 'No nutritional information found for this food';
+                }
+            } catch (error) {
+                console.error('Error fetching nutritional info:', error);
+                sugarInfoDiv.innerText = 'Error fetching nutritional info';
+            }
+        }
+
+        async function displayNutritionalInfo(foodItem, sugarValue, glucoseValue) {
+            console.log('Displaying nutritional info...'); // דיבוג - להדפיס הודעה כאשר הפונקציה נקראת
+            // בדוק ערכים של משתנים
+            if (!foodItem) {
+                console.error('foodItem is undefined or null');
+                return; // עצור את הפונקציה אם foodItem לא מוגדר
+            } else {
+                document.getElementById("hiddenSugarValue").value = sugarValue;
+                console.log('foodItem is defined:', foodItem);
+            }
+
+            if (!sugarValue) {
+                console.warn('sugarValue is undefined or null');
+            } else {
+                console.log('sugarValue is defined:', sugarValue);
+            }
+
+            if (!glucoseValue) {
+                console.warn('glucoseValue is undefined or null');
+            } else {
+                console.log('glucoseValue is defined:', glucoseValue);
+            }
+            const sugarInfoDiv = document.getElementById("sugarInfoDiv");
+            sugarInfoDiv.innerHTML = `<h4>Nutritional Information:</h4>
+                                      <p>${foodItem.description}</p>
+                                      <p>Sugar: ${sugarValue ? sugarValue.value + 'g' : 'N/A'}</p>
+                                      <p>Glucose: ${glucoseValue ? glucoseValue.value + 'g (Total Sugars)' : 'N/A'}</p>`;
+            console.log('Sending data to MVC...'); // כדי לבדוק אם הפונקציה נקראת
+            console.log('Sending data to MVC:', {
+                description: foodItem.description,
+                sugar: sugarValue ? sugarValue.value : 0,
+                glucose: glucoseValue ? glucoseValue.value : 0
+            });
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        async function saveSugarLevel() {
+    console.log("??????????????");
+    
+    const sugarLevel = parseFloat(document.getElementById("hiddenSugarValue").value);
+    console.log("///////////////////", sugarLevel);
+    
+    if (sugarLevel > 140) {
+        alert("רמת הסוכר גבוהה מ-140. פנה לרופא שלך בהקדם!");
+        return;
+    }
+    
+    const dateInput = document.getElementById('dateInput').value;
+    const mealType = document.getElementById("mealType").value;
+    const isHoliday = document.getElementById('dateResult').textContent.includes("חג");
+
+    // שאיבת שם המשתמש מהשרת
+    let username;
+    try {
+        const response = await axios.get("https://your-server-api-url/getUsername");
+        username = response.data.username;
+    } catch (error) {
+        console.error("Error fetching username:", error);
+        alert("שגיאה בקבלת שם המשתמש.");
+        return;
+    }
+
+    console.log("data: ", dateInput, mealType, isHoliday, username);
+
+    const data = {
+        username: username,
+        dateOfmeal: dateInput,
+        moment: mealType,
+        meal: mealType, // באפשרותך לעדכן לפי המידע המלא שתקבלי
+        sugarlevel: sugarLevel,
+        isHag: isHoliday
+    };
+
+    try {
+        const response = await axios.post("https://your-server-api-url/addMeal", data);
+        if (response.status === 201) {
+            alert("הנתונים נשמרו בהצלחה!");
+        } else {
+            alert("שגיאה בשמירת הנתונים. אנא נסה שוב.");
+        }
+    } catch (error) {
+        console.error("Error saving data:", error);
+        alert("שגיאה בשמירת הנתונים. אנא בדוק את החיבור לשרת.");
+    }
+}
+
+
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,77 @@
+body
+{
+    font-family: Verdana, Geneva, Tahoma, sans-serif ;
+    background-image:url(https://www.coeuretavc.ca/-/media/images/get-healthy/eat-variety-healthy-foods-image.jpg?rev=276f91a7f74543f59f4706ca050bd687&la=fr-CA&h=345&w=614&hash=BA245AE1110C230354BBD6073959DD06) ;
+}
+
+h1{
+    text-align: center;
+    color: rgb(29, 192, 29);
+    font-size: 50px; 
+
+}
+.principale{
+    width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+  background-color:white;
+  padding: 20px;
+  max-width: 500px;
+  opacity: 0.8;
+}
+.joli{
+    text-align: center;
+}
+.doctor{
+   color: blue;
+   text-align: center;
+}
+.approbation{
+    font-style: italic;
+    font-size: 20px; 
+}
+h2{
+    text-align: center;
+    color: rgb(29, 192, 29);
+}
+.icons-container {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    height: 80vh; /* Hauteur des icônes défilantes */
+}
+
+.icon-item {
+    margin: 10px;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.icon-item:hover {
+    transform: scale(1.2);
+}
+
+.icon-item img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.icon-item a, .icon-item{
+    text-decoration: none;
+    color: rgb(163, 14, 196);
+    font-weight: bold;
+    margin-top: 5px;
+    display: block;
+    text-align: center;
+}
+
+.icon-item img:hover {
+    opacity: 0.7;
+}

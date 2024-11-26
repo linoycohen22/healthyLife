@@ -1,0 +1,25 @@
+<html lang="he"></html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הרשמה</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="signup-container">
+        <h2>הרשמה</h2>
+        <form action="/signup" method="post">
+            <label for="username">שם משתמש:</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="email">כתובת אימייל:</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="password">סיסמה:</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">הירשם</button>
+        </form>
+    </div>
+</body>
+</html>
