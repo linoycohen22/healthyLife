@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הודעות מהרופא</title>
+    <style>
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            font-family: Arial, sans-serif;
+            color: #333;
+            display: none;
+        }
+
+        .notification.show {
+            display: block;
+            animation: fadeIn 0.5s, fadeOut 0.5s 5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // פונקציה להצגת הודעה
+        function showNotification(message) {
+            const notificationElement = document.getElementById('notification');
+            notificationElement.textContent = message;
+            notificationElement.classList.add('show');
+
+            // הסרת ההודעה לאחר 5 שניות
+            setTimeout(() => {
+                notificationElement.classList.remove('show');
+            }, 6000);
+        }
+
+        // פונקציה לבקשת הודעות מהשרת
+        async function fetchMessage() {
+            try {
+                const response = await fetch('http://localhost:3000/get-message');
+                const data = await response.json();
+                showNotification(data.message);
+            } catch (error) {
+                console.error("Error fetching message:", error);
+            }
+        }
+
+        // הפעלת בקשות אוטומטיות כל 30 שניות
+        setInterval(fetchMessage, 30000);
+
+        // בקשה ראשונית בעת טעינת הדף
+        fetchMessage();
+    </script>
+</body>
+</html>

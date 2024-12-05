@@ -15,7 +15,7 @@
         <!-- טופס הזנת תאריך ובדיקת חג -->
         <form id="dateForm" class="form-section">
             <label>הכנס תאריך (YYYY-MM-DD):</label>
-            <input type="date" id="dateInput" name= "dateOfmeal" required>
+            <input type="date" id="dateInput" name="dateOfmeal" required>
             <button type="button" onclick="checkDate()">בדוק תאריך</button>
         </form>
         <p id="dateResult" class="result"></p>
@@ -24,9 +24,9 @@
         <form id="mealForm" class="form-section">
             <label>בחר סוג ארוחה:</label>
             <select id="mealType" name="moment" required>
-                <option value="בוקר">בוקר</option>
-                <option value="צהריים">צהריים</option>
-                <option value="ערב">ערב</option>
+                <option value="Morning">בוקר</option>
+                <option value="Noon">צהריים</option>
+                <option value="Evening">ערב</option>
             </select>
             <button type="button" onclick="saveMeal()">שמור סוג ארוחה</button>
         </form>
@@ -40,14 +40,10 @@
         <div id="imageResult" class="result-message" name="meal" required></div>
         <div id="sugarInfoDiv" class="result-message" name="sugarlevel" required></div>
         <input type="hidden" id="hiddenSugarValue">
+        <input type="hidden" id="hiddenMealType">
         <br>
-
-        <!-- הזנת רמת סוכר
-        <form id="sugarForm" class="form-section">
-            <label>רמת סוכר נמדדת:</label>
-            <input type="number" id="sugarLevel" required>
-        </form> -->
         <button type="button" onclick="saveSugarLevel()">שמור</button>
+
     </div>
 
     <script>
@@ -87,7 +83,7 @@
             } catch (error) {
                 resultElement.textContent = "שגיאה בבדיקת התאריך.";
                 console.error("Error:", error);
-            } 
+            }
         }
 
         async function saveMeal() {
@@ -115,7 +111,7 @@
                 // שליחת הבקשה ל-API של Imagga
                 const response = await axios.post("https://api.imagga.com/v2/tags", formData, {
                     headers: {
-                        "Authorization": "Basic " + btoa("acc_b1dfcdf9ee43c9e:3d10d42fe94933f87e4285be2d3883cd"),
+                        "Authorization": "Basic " + btoa("acc_6a8cb1d470df5d6:242afc6b2282e47b42ade094ce141c35"),
                         "Content-Type": "multipart/form-data"
                     }
                 });
@@ -165,8 +161,11 @@
                         const sugarValue = foodItem.foodNutrients.find(n =>
                             n.nutrientName.includes('Total Sugars')
                         );
+                        console.log("sugarValue: ", sugarValue.value);
 
                         const glucoseValue = sugarValue; // אם גלוקוז חסר, נציג את ערך הסוכר
+                        
+                        
 
                         if (sugarValue) {
                             await displayNutritionalInfo(foodItem, sugarValue, glucoseValue); // הוספת await כאן
@@ -190,7 +189,8 @@
                 console.error('foodItem is undefined or null');
                 return; // עצור את הפונקציה אם foodItem לא מוגדר
             } else {
-                document.getElementById("hiddenSugarValue").value = sugarValue;
+                document.getElementById("hiddenSugarValue").value = sugarValue.value;
+                document.getElementById("hiddenMealType").value = foodItem.description;
                 console.log('foodItem is defined:', foodItem);
             }
 
@@ -218,59 +218,57 @@
             });
         }
 
-        ///////////////////////////////////////////////////////////////////////
         async function saveSugarLevel() {
-    console.log("??????????????");
-    
-    const sugarLevel = parseFloat(document.getElementById("hiddenSugarValue").value);
-    console.log("///////////////////", sugarLevel);
-    
-    if (sugarLevel > 140) {
-        alert("רמת הסוכר גבוהה מ-140. פנה לרופא שלך בהקדם!");
-        return;
-    }
-    
-    const dateInput = document.getElementById('dateInput').value;
-    const mealType = document.getElementById("mealType").value;
-    const isHoliday = document.getElementById('dateResult').textContent.includes("חג");
 
-    // שאיבת שם המשתמש מהשרת
-    let username;
-    try {
-        const response = await axios.get("https://your-server-api-url/getUsername");
-        username = response.data.username;
-    } catch (error) {
-        console.error("Error fetching username:", error);
-        alert("שגיאה בקבלת שם המשתמש.");
-        return;
-    }
+            const sugarLevel = parseFloat(document.getElementById("hiddenSugarValue").value);
+            console.log("///////////////////", sugarLevel);
 
-    console.log("data: ", dateInput, mealType, isHoliday, username);
+            if (sugarLevel > 140) {
+                alert("רמת הסוכר גבוהה מ-140. פנה לרופא שלך בהקדם!");
+                return;
+            }
 
-    const data = {
-        username: username,
-        dateOfmeal: dateInput,
-        moment: mealType,
-        meal: mealType, // באפשרותך לעדכן לפי המידע המלא שתקבלי
-        sugarlevel: sugarLevel,
-        isHag: isHoliday
-    };
+            const dateInput = document.getElementById('dateInput').value;
+            const momentType = document.getElementById("mealType").value;
+            const isHoliday = document.getElementById('dateResult').textContent.includes("חג");
+            const mealType = document.getElementById("hiddenMealType").value;
 
-    try {
-        const response = await axios.post("https://your-server-api-url/addMeal", data);
-        if (response.status === 201) {
-            alert("הנתונים נשמרו בהצלחה!");
-        } else {
-            alert("שגיאה בשמירת הנתונים. אנא נסה שוב.");
+            // שאיבת שם המשתמש מהשרת
+            let username;
+            try {
+                const response = await axios.get("http://localhost:3000/getUsername");
+                username = response.data.username;
+            } catch (error) {
+                console.error("Error fetching username:", error);
+                alert("שגיאה בקבלת שם המשתמש.");
+                return;
+            }
+
+            console.log("data: ", dateInput, mealType, isHoliday, username);
+
+            const data = {
+                username: username,
+                dateOfmeal: dateInput,
+                moment: momentType,
+                meal: mealType, // באפשרותך לעדכן לפי המידע המלא שתקבלי
+                sugarlevel: sugarLevel,
+                isHag: isHoliday
+            };
+            console.log("data to send: ",data);
+            
+            try {
+                const response = await axios.post("http://localhost:3000/addMeal", data);
+
+                if (response.status === 201) {
+                    alert("הנתונים נשמרו בהצלחה!");
+                } else {
+                    alert("שגיאה בשמירת הנתונים. אנא נסה שוב.");
+                }
+            } catch (error) {
+                console.error("Error saving data:", error);
+                alert("שגיאה בשמירת הנתונים. אנא בדוק את החיבור לשרת.");
+            }
         }
-    } catch (error) {
-        console.error("Error saving data:", error);
-        alert("שגיאה בשמירת הנתונים. אנא בדוק את החיבור לשרת.");
-    }
-}
-
-
-
     </script>
 </body>
 
